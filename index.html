@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bullion Dashboard v2.9</title>
+    <title>Bullion Dashboard v3.0</title>
     <style>
         body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', sans-serif; padding: 20px; margin: 0; }
         .container { max-width: 800px; margin: auto; }
@@ -14,19 +14,17 @@
             grid-template-columns: repeat(3, 1fr); 
             gap: 12px; 
             margin-bottom: 25px; 
-            max-width: 700px; 
+            max-width: 650px; 
             margin-left: auto; 
             margin-right: auto;
         }
         .card { 
             background: #161616; 
-            border: 1px solid #222; 
+            border: 1px solid #333; 
             padding: 15px 10px; 
             border-radius: 8px; 
             text-align: center;
-            transition: 0.3s;
         }
-        .card:hover { border-color: #ffd700; }
         .card-label { color: #888; font-size: 0.65rem; text-transform: uppercase; margin-bottom: 5px; display: block; }
         .card-value { color: #fff; font-size: 1.4rem; font-weight: bold; }
 
@@ -34,7 +32,7 @@
         table { width: 100%; border-collapse: collapse; background: #121212; border-radius: 8px; overflow: hidden; border: 1px solid #222; }
         td { border-bottom: 1px solid #1a1a1a; padding: 12px 15px; }
         .row-label { color: #999; font-size: 0.85rem; font-weight: 500; }
-        .row-value { color: #fff; font-weight: 600; text-align: right; font-family: monospace; font-size: 1rem; }
+        .row-value { color: #fff; font-weight: 600; text-align: right; font-size: 1rem; }
 
         /* Footer */
         .footer { margin-top: 30px; text-align: center; color: #555; font-size: 0.8rem; padding: 20px; border-top: 1px solid #222; }
@@ -72,54 +70,40 @@
     <script>
         const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyE3a8fCvHt8AwUEBkgqpSxzDgS3ZhTUgSIqGkgZ22ouKCbmdu0cp8sQ9tcY4yI7IzqyA/exec";
 
-        // BRUTE FORCE DATE FIX: Ignore all logic, just grab the pieces of the string
-        function absoluteDateFix(val) {
-            if (!val) return "";
-            let s = val.toString();
-            
-            // If Google sends 2026-03-23...
-            if (s.includes("-") && s.length >= 10) {
-                let parts = s.split("T")[0].split("-");
-                if (parts.length === 3) {
-                    // Force the parts: Year (0), Month (1), Day (2)
-                    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                    let day = parts[2];
-                    let monthName = months[parseInt(parts[1], 10) - 1];
-                    let year = parts[0];
-                    return `${day}-${monthName}-${year}`;
-                }
-            }
-            return s;
-        }
-
         function handleData(data) {
             const now = new Date();
-            document.getElementById('sync-status').innerText = "Last Sync: " + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            document.getElementById('sync-status').innerText = "Last Sync: " + now.toLocaleTimeString();
 
-            // 1. Cards (Narrowed)
+            // 1. Render Cards (First 3 rows)
             let cardHtml = "";
             for (let i = 0; i < 3; i++) {
                 if (data[i]) {
-                    cardHtml += `<div class="card"><span class="card-label">${data[i][0]}</span><span class="card-value">${data[i][1]}</span></div>`;
+                    cardHtml += `
+                        <div class="card">
+                            <span class="card-label">${data[i][0]}</span>
+                            <span class="card-value">${data[i][1]}</span>
+                        </div>
+                    `;
                 }
             }
             document.getElementById('top-cards').innerHTML = cardHtml;
 
-            // 2. Table
+            // 2. Render Table (Remaining rows)
             let tableHtml = "";
             data.forEach((row, index) => {
+                // Skip the top 3 and skip the row with "Updated Time"
                 if (index > 2 && row[0]) {
                     let label = row[0].toString();
-                    let value = row[1] ? row[1].toString() : "";
-
+                    
                     if (label.toLowerCase().includes("updated time")) return;
 
-                    // Apply the absolute date fix
-                    if (label.toLowerCase().includes("date")) {
-                        value = absoluteDateFix(value);
-                    }
-
-                    tableHtml += `<tr><td class="row-label">${label}</td><td class="row-value">${value}</td></tr>`;
+                    // Pulling directly as it is from the file
+                    tableHtml += `
+                        <tr>
+                            <td class="row-label">${label}</td>
+                            <td class="row-value">${row[1]}</td>
+                        </tr>
+                    `;
                 }
             });
             document.getElementById('table-body').innerHTML = tableHtml;
