@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bullion Dashboard v3.1</title>
+    <title>Bullion Dashboard v3.2</title>
     <style>
         body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', sans-serif; padding: 20px; margin: 0; }
         .container { max-width: 800px; margin: auto; }
@@ -53,12 +53,12 @@
     </div>
 
     <script>
-        const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyE3a8fCvHt8AwUEBkgqpSxzDgS3ZhTUgSIqGkgZ22ouKCbmdu0cp8sQ9tcY4yI7IzqyA/exec";
+        const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwa333ab92mFeWVa3FQRzDtaLWRLuZUWtFh3-HBfMaiJTcAJJCbaBsIT0QDhcLNRJ5EKg/exec";
 
         function handleData(data) {
             document.getElementById('sync-status').innerText = "Last Sync: " + new Date().toLocaleTimeString();
             
-            // Render Cards
+            // 1. Update Tiles
             let cardHtml = "";
             for (let i = 0; i < 3; i++) {
                 if (data[i]) {
@@ -67,9 +67,10 @@
             }
             document.getElementById('top-cards').innerHTML = cardHtml;
 
-            // Render Table
+            // 2. Update Table (No conversion, direct text)
             let tableHtml = "";
             data.forEach((row, index) => {
+                // Skips first 3 and ignores "Updated Time" row
                 if (index > 2 && row[0] && !row[0].toLowerCase().includes("updated time")) {
                     tableHtml += `<tr><td class="row-label">${row[0]}</td><td class="row-value">${row[1]}</td></tr>`;
                 }
