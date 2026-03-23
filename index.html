@@ -3,52 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Raw Data Feed - Bullion</title>
+    <title>Bullion Raw Data</title>
     <style>
-        body { background-color: #0d0d0d; color: #ffd700; font-family: monospace; padding: 20px; line-height: 1.6; }
-        .container { max-width: 600px; margin: auto; text-align: left; border: 1px solid #333; padding: 20px; border-radius: 8px; }
-        h1 { text-align: center; border-bottom: 1px solid #ffd700; padding-bottom: 10px; }
-        .data-row { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding: 8px 0; }
-        .label { color: #888; font-weight: bold; }
-        .value { color: #fff; }
-        #status { text-align: center; color: #555; margin-top: 20px; font-size: 0.8rem; }
+        body { background-color: #0d0d0d; color: #ffd700; font-family: 'Courier New', Courier, monospace; padding: 20px; }
+        .container { max-width: 800px; margin: auto; }
+        h1 { border-bottom: 2px solid #ffd700; padding-bottom: 10px; text-align: center; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #1a1a1a; }
+        th, td { border: 1px solid #333; padding: 12px; text-align: left; }
+        th { background-color: #222; color: #888; text-transform: uppercase; font-size: 0.8rem; }
+        .row-label { color: #ffd700; font-weight: bold; width: 40%; }
+        .row-value { color: #ffffff; }
+
+        #status { text-align: center; margin-top: 30px; color: #555; font-size: 0.8rem; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>RAW SHEET DATA</h1>
-        <div id="data-list">Initializing connection...</div>
-        <div id="status">Syncing with Google Web App...</div>
+        <h1>RAW BULLION DATA</h1>
+        <table id="data-table">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Value / Rate</th>
+                </tr>
+            </thead>
+            <tbody id="data-body">
+                <tr><td colspan="2" style="text-align:center;">Loading every row from Sheet 1...</td></tr>
+            </tbody>
+        </table>
+        <p id="status">Syncing...</p>
     </div>
 
     <script>
         const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyE3a8fCvHt8AwUEBkgqpSxzDgS3ZhTUgSIqGkgZ22ouKCbmdu0cp8sQ9tcY4yI7IzqyA/exec";
 
-        // This function handles the "All Data" dump
         function handleData(data) {
             let html = "";
             
-            // Loop through every single row in the sheet
-            data.forEach(row => {
-                // Only show rows that have data in the first or second column
-                if (row[0] || row[1]) {
+            // Loop through every row sent by the Google Script
+            data.forEach((row, index) => {
+                // We show the row if it has anything in the first column
+                if (row[0] !== "" && row[0] !== null) {
+                    
+                    // Small fix to make dates readable if Google sends them weirdly
+                    let displayValue = row[1];
+                    if (row[0].toString().toLowerCase().includes("date") && displayValue.includes("T")) {
+                        displayValue = displayValue.split("T")[0];
+                    }
+
                     html += `
-                        <div class="data-row">
-                            <span class="label">${row[0] || ""}</span>
-                            <span class="value">${row[1] || ""} ${row[2] || ""}</span>
-                        </div>
+                        <tr>
+                            <td class="row-label">${row[0]}</td>
+                            <td class="row-value">${displayValue} ${row[2] || ""}</td>
+                        </tr>
                     `;
                 }
             });
 
-            document.getElementById('data-list').innerHTML = html;
-            document.getElementById('status').innerText = "Last Updated: " + new Date().toLocaleTimeString();
+            document.getElementById('data-body').innerHTML = html;
+            document.getElementById('status').innerText = "Last Connection: " + new Date().toLocaleTimeString();
         }
 
         function requestUpdate() {
             const script = document.createElement('script');
-            // Using your updated URL with the JSONP callback
             script.src = GOOGLE_URL + "?callback=handleData&t=" + new Date().getTime();
             document.body.appendChild(script);
             script.onload = () => script.remove();
