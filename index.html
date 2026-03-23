@@ -3,78 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bullion Raw Data</title>
+    <title>Bullion Live - Full Data Feed</title>
     <style>
-        body { background-color: #0d0d0d; color: #ffd700; font-family: 'Courier New', Courier, monospace; padding: 20px; }
-        .container { max-width: 800px; margin: auto; }
-        h1 { border-bottom: 2px solid #ffd700; padding-bottom: 10px; text-align: center; }
+        /* Dark Professional Theme */
+        body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; margin: 0; }
+        .container { max-width: 700px; margin: auto; }
+        h1 { text-align: center; border-bottom: 2px solid #333; padding-bottom: 15px; letter-spacing: 2px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #1a1a1a; }
-        th, td { border: 1px solid #333; padding: 12px; text-align: left; }
-        th { background-color: #222; color: #888; text-transform: uppercase; font-size: 0.8rem; }
-        .row-label { color: #ffd700; font-weight: bold; width: 40%; }
-        .row-value { color: #ffffff; }
-
-        #status { text-align: center; margin-top: 30px; color: #555; font-size: 0.8rem; }
+        /* Table Styling for All Data */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #161616; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        th, td { border-bottom: 1px solid #222; padding: 15px; text-align: left; }
+        th { background-color: #222; color: #888; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; }
+        
+        .row-label { color: #aaa; font-size: 0.9rem; font-weight: 500; }
+        .row-value { color: #ffffff; font-size: 1.1rem; font-weight: bold; text-align: right; }
+        
+        /* Status Bar */
+        #status-bar { text-align: center; margin-top: 30px; font-size: 0.8rem; color: #444; border-top: 1px solid #222; padding-top: 15px; }
+        .live-dot { height: 8px; width: 8px; background-color: #00ff00; border-radius: 50%; display: inline-block; margin-right: 5px; box-shadow: 0 0 5px #00ff00; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>RAW BULLION DATA</h1>
-        <table id="data-table">
+        <h1>BULLION LIVE FEED</h1>
+        
+        <table id="main-table">
             <thead>
                 <tr>
                     <th>Description</th>
-                    <th>Value / Rate</th>
+                    <th style="text-align: right;">Current Rate / Value</th>
                 </tr>
             </thead>
             <tbody id="data-body">
-                <tr><td colspan="2" style="text-align:center;">Loading every row from Sheet 1...</td></tr>
+                <tr><td colspan="2" style="text-align:center; padding: 50px;">Connecting to Sheet 1...</td></tr>
             </tbody>
         </table>
-        <p id="status">Syncing...</p>
+
+        <div id="status-bar">
+            <span class="live-dot"></span> System Live | <span id="sync-time">Synchronizing...</span>
+        </div>
     </div>
 
     <script>
+        // Your current Web App URL
         const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyE3a8fCvHt8AwUEBkgqpSxzDgS3ZhTUgSIqGkgZ22ouKCbmdu0cp8sQ9tcY4yI7IzqyA/exec";
 
+        // This function processes the data dump from Sheet 1
         function handleData(data) {
             let html = "";
             
-            // Loop through every row sent by the Google Script
-            data.forEach((row, index) => {
-                // We show the row if it has anything in the first column
-                if (row[0] !== "" && row[0] !== null) {
+            data.forEach((row) => {
+                // If the first column has a label, show the row
+                if (row[0] && row[0].toString().trim() !== "") {
                     
-                    // Small fix to make dates readable if Google sends them weirdly
-                    let displayValue = row[1];
-                    if (row[0].toString().toLowerCase().includes("date") && displayValue.includes("T")) {
-                        displayValue = displayValue.split("T")[0];
+                    let val = row[1] || "---";
+                    
+                    // Cleanup for weird date formatting if necessary
+                    if (row[0].toString().includes("Date") && val.toString().includes("T")) {
+                        val = val.split("T")[0];
                     }
 
                     html += `
                         <tr>
                             <td class="row-label">${row[0]}</td>
-                            <td class="row-value">${displayValue} ${row[2] || ""}</td>
+                            <td class="row-value">${val} ${row[2] || ""}</td>
                         </tr>
                     `;
                 }
             });
 
             document.getElementById('data-body').innerHTML = html;
-            document.getElementById('status').innerText = "Last Connection: " + new Date().toLocaleTimeString();
+            document.getElementById('sync-time').innerText = "Last Sync: " + new Date().toLocaleTimeString();
         }
 
         function requestUpdate() {
+            // JSONP Technique to bypass Incognito/CORS blocks
             const script = document.createElement('script');
             script.src = GOOGLE_URL + "?callback=handleData&t=" + new Date().getTime();
             document.body.appendChild(script);
             script.onload = () => script.remove();
         }
 
-        // Refresh every 30 seconds
+        // Auto-refresh every 30 seconds
         setInterval(requestUpdate, 30000);
+        
+        // Initial load
         requestUpdate();
     </script>
 </body>
