@@ -3,17 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Bullion Dashboard</title>
+    <title>Bullion Live Dashboard</title>
     <style>
-        body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 20px; }
-        .container { max-width: 800px; margin: auto; }
-        h1 { border-bottom: 2px solid #ffd700; display: inline-block; padding-bottom: 10px; margin-bottom: 30px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
-        .card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: 0.3s; }
+        /* Modern Dark Theme */
+        body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', sans-serif; text-align: center; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        h1 { font-size: 2.2rem; letter-spacing: 2px; margin-bottom: 30px; border-bottom: 2px solid #333; display: inline-block; padding-bottom: 10px; }
+        
+        /* Layout */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        .card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: 0.3s; }
         .card:hover { border-color: #ffd700; transform: translateY(-5px); }
-        .label { color: #aaa; font-size: 0.9em; text-transform: uppercase; display: block; margin-bottom: 10px; }
-        .price { font-size: 2.2em; font-weight: bold; color: #fff; }
-        #timestamp { margin-top: 40px; color: #666; font-style: italic; }
+        
+        /* Typography */
+        .label { color: #888; font-size: 0.9rem; text-transform: uppercase; display: block; margin-bottom: 10px; }
+        .price { font-size: 2rem; font-weight: bold; color: #fff; }
+        #timestamp { margin-top: 40px; color: #444; font-style: italic; font-size: 0.8rem; }
+        .loading { color: #ffd700; font-size: 1.2rem; margin-top: 50px; }
     </style>
 </head>
 <body>
@@ -22,27 +28,38 @@
         <h1>BULLION LIVE FEED</h1>
         
         <div class="grid" id="dashboard">
-            <p>Fetching latest market rates...</p>
+            <div class="loading">Fetching live rates...</div>
         </div>
 
-        <p id="timestamp">Loading sync time...</p>
+        <p id="timestamp">Waiting for sync...</p>
     </div>
 
     <script>
-        const SHEET_URL = "https://script.google.com/macros/s/AKfycbw7H341oKecHtNlp6VMjJDDFzpM8ljJ7JGFRmCb9TZfw6bHh8AHpFyu6YTfgvQddR8q6Q/exec;
+        // Your Verified URL
+        const APP_URL = "https://script.google.com/macros/s/AKfycbw7H341oKecHtNlp6VMjJDDFzpM8ljJ7JGFRmCb9TZfw6bHh8AHpFyu6YTfgvQddR8q6Q/exec";
 
-        async function getData() {
+        async function fetchRates() {
             try {
-                const response = await fetch(SHEET_URL);
+                // 'redirect: follow' is the secret to making Google Apps Script work with GitHub
+                const response = await fetch(APP_URL, { redirect: "follow" });
                 const data = await response.json();
 
-                // Mapping your specific rows from the "Bullion Dashboard" sheet:
-                // data[row][column] (Starts at 0)
+                // This function searches Row 1 (labels) to find the right Price in Row 2
+                function getVal(name) {
+                    for (let row of data) {
+                        if (row[0] && row[0].toString().toLowerCase().includes(name.toLowerCase())) {
+                            return row[1]; // Get value from the cell next to it
+                        }
+                    }
+                    return "---";
+                }
+
+                // Cards to display
                 const items = [
-                    { label: data[0][0], value: data[0][1] }, // Gold Spot
-                    { label: data[1][0], value: data[1][1] }, // Silver Spot
-                    { label: data[2][0], value: data[2][1] }, // USD-INR
-                    { label: data[4][0], value: data[4][1] }  // GOLD 995 SELL
+                    { label: "Gold Spot", val: getVal("Gold Spot") },
+                    { label: "Silver Spot", val: getVal("Silver Spot") },
+                    { label: "USD-INR", val: getVal("USD-INR") },
+                    { label: "Gold 995 Sell", val: getVal("GOLD 995 SELL") }
                 ];
 
                 let html = "";
@@ -50,23 +67,23 @@
                     html += `
                         <div class="card">
                             <span class="label">${item.label}</span>
-                            <span class="price">${item.value}</span>
+                            <span class="price">${item.val}</span>
                         </div>
                     `;
                 });
 
                 document.getElementById('dashboard').innerHTML = html;
-                // Grabbing the timestamp from your last row (Cell B6)
-                document.getElementById('timestamp').innerText = "Sheet Sync: " + data[5][1];
+                document.getElementById('timestamp').innerText = "Last Updated: " + (getVal("Last Updated") || "Now");
 
             } catch (error) {
-                document.getElementById('dashboard').innerHTML = "<p style='color:red;'>Connection Error. Retrying...</p>";
+                console.error("Fetch error:", error);
+                document.getElementById('dashboard').innerHTML = "<p style='color:red;'>Connection Error.<br>Please ensure your Google Script is deployed to 'Anyone'.</p>";
             }
         }
 
-        // Auto-refresh the website every 60 seconds
-        setInterval(getData, 60000);
-        getData();
+        // Auto-update every 1 minute
+        setInterval(fetchRates, 60000);
+        fetchRates();
     </script>
 </body>
 </html>
