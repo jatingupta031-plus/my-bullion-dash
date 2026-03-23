@@ -3,36 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bullion Live v2.5</title>
+    <title>Bullion Live v2.7</title>
     <style>
         body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', sans-serif; padding: 20px; margin: 0; }
         .container { max-width: 900px; margin: auto; }
         
-        /* Top 3 Cards */
         .card-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
         .card { background: #1a1a1a; border: 1px solid #333; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         .card-label { color: #888; font-size: 0.7rem; text-transform: uppercase; margin-bottom: 5px; display: block; }
         .card-value { color: #fff; font-size: 1.6rem; font-weight: bold; }
 
-        /* Table */
         table { width: 100%; border-collapse: collapse; background: #161616; border-radius: 8px; overflow: hidden; }
         td { border-bottom: 1px solid #222; padding: 12px 15px; }
         .row-label { color: #aaa; font-size: 0.85rem; font-weight: bold; }
         .row-value { color: #fff; font-weight: 600; text-align: right; }
 
-        /* Footer */
         .footer { margin-top: 30px; text-align: center; color: #666; font-size: 0.85rem; padding: 20px; border-top: 1px solid #222; }
-        .live-dot { 
-            height: 10px; width: 10px; background-color: #00ff00; border-radius: 50%; 
-            display: inline-block; margin-right: 8px;
-            animation: pulse 1.5s infinite;
-        }
+        .live-dot { height: 10px; width: 10px; background-color: #00ff00; border-radius: 50%; display: inline-block; margin-right: 8px; animation: pulse 1.5s infinite; }
         @keyframes pulse {
             0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); }
             70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); }
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
         }
-
         @media (max-width: 600px) { .card-row { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -42,14 +34,12 @@
         <h2 style="text-align:center; letter-spacing:2px; margin-bottom:25px;">BULLION LIVE FEED</h2>
         
         <div class="card-row" id="top-cards">
-            <div class="card">...</div>
-            <div class="card">...</div>
-            <div class="card">...</div>
+            <div class="card">...</div><div class="card">...</div><div class="card">...</div>
         </div>
 
         <table>
             <tbody id="table-body">
-                <tr><td style="text-align:center; padding:20px; color:#444;">Fetching sheet data...</td></tr>
+                <tr><td style="text-align:center; padding:20px; color:#444;">Updating rates...</td></tr>
             </tbody>
         </table>
 
@@ -63,47 +53,49 @@
     <script>
         const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyE3a8fCvHt8AwUEBkgqpSxzDgS3ZhTUgSIqGkgZ22ouKCbmdu0cp8sQ9tcY4yI7IzqyA/exec";
 
+        // Fixed Logic: Manually maps the numbers without timezone shifts
+        function forceDateFormat(str) {
+            if (!str) return "";
+            let cleanStr = str.toString().split("T")[0]; // Take only the YYYY-MM-DD part
+            if (!cleanStr.includes("-")) return str;
+
+            const parts = cleanStr.split("-"); // [YYYY, MM, DD]
+            if (parts.length !== 3) return str;
+
+            const year = parts[0];
+            const monthIdx = parseInt(parts[1], 10) - 1;
+            const day = parts[2];
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            
+            return `${day}-${months[monthIdx]}-${year}`;
+        }
+
         function handleData(data) {
-            // Update Sync Time to current wall clock time
             const now = new Date();
             document.getElementById('sync-status').innerText = "Last Sync: " + now.toLocaleTimeString();
 
-            // 1. Cards (Top 3 rows)
             let cardHtml = "";
             for (let i = 0; i < 3; i++) {
                 if (data[i]) {
-                    cardHtml += `
-                        <div class="card">
-                            <span class="card-label">${data[i][0].toString()}</span>
-                            <span class="card-value">${data[i][1].toString()}</span>
-                        </div>
-                    `;
+                    cardHtml += `<div class="card"><span class="card-label">${data[i][0]}</span><span class="card-value">${data[i][1]}</span></div>`;
                 }
             }
             document.getElementById('top-cards').innerHTML = cardHtml;
 
-            // 2. Table (Excluding first 3 and excluding "Last Updated Time" row)
             let tableHtml = "";
             data.forEach((row, index) => {
                 if (index > 2 && row[0]) {
                     let label = row[0].toString();
                     let value = row[1] ? row[1].toString() : "";
 
-                    // Filter out the Time row at the bottom
-                    if (!label.toLowerCase().includes("updated time")) {
-                        
-                        // Force Date to be simple text if Google sends an ISO string
-                        if (label.toLowerCase().includes("date") && value.includes("T")) {
-                            value = value.split("T")[0];
-                        }
+                    if (label.toLowerCase().includes("updated time")) return;
 
-                        tableHtml += `
-                            <tr>
-                                <td class="row-label">${label}</td>
-                                <td class="row-value">${value}</td>
-                            </tr>
-                        `;
+                    // If it's the date row, force the format to Day-Month-Year
+                    if (label.toLowerCase().includes("date")) {
+                        value = forceDateFormat(value);
                     }
+
+                    tableHtml += `<tr><td class="row-label">${label}</td><td class="row-value">${value}</td></tr>`;
                 }
             });
             document.getElementById('table-body').innerHTML = tableHtml;
@@ -116,7 +108,6 @@
             script.onload = () => script.remove();
         }
 
-        // Fetch fresh data every 30 seconds
         setInterval(requestUpdate, 30000);
         requestUpdate();
     </script>
