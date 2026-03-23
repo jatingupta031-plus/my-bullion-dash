@@ -3,49 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bullion Dashboard v3.2</title>
+    <title>Bullion Dashboard v3.3</title>
     <style>
-        body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', sans-serif; padding: 20px; margin: 0; }
+        body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', sans-serif; padding: 15px; margin: 0; }
         .container { max-width: 800px; margin: auto; }
         
-        /* Narrower Tiles */
+        /* Forces 3 columns even on small mobile screens */
         .card-row { 
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; 
-            margin-bottom: 25px; max-width: 600px; margin: auto; 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 8px; 
+            margin-bottom: 25px; 
+            max-width: 600px; 
+            margin: auto; 
         }
         .card { 
-            background: #161616; border: 1px solid #333; padding: 15px 10px; 
-            border-radius: 8px; text-align: center;
+            background: #161616; 
+            border: 1px solid #333; 
+            padding: 12px 5px; 
+            border-radius: 8px; 
+            text-align: center;
         }
-        .card-label { color: #888; font-size: 0.65rem; text-transform: uppercase; margin-bottom: 5px; display: block; }
-        .card-value { color: #fff; font-size: 1.4rem; font-weight: bold; }
+        .card-label { color: #888; font-size: 0.6rem; text-transform: uppercase; margin-bottom: 4px; display: block; }
+        .card-value { color: #fff; font-size: 1.1rem; font-weight: bold; }
 
+        /* Table */
         table { width: 100%; border-collapse: collapse; background: #121212; border-radius: 8px; overflow: hidden; border: 1px solid #222; }
         td { border-bottom: 1px solid #1a1a1a; padding: 12px 15px; }
         .row-label { color: #999; font-size: 0.85rem; }
         .row-value { color: #fff; font-weight: 600; text-align: right; }
 
+        /* Custom Golden Highlighting for 995 rows */
+        .highlight-gold td { color: #ffd700 !important; font-weight: bold !important; }
+        .highlight-gold .row-label { color: #ffd700 !important; }
+
         .footer { margin-top: 30px; text-align: center; color: #555; font-size: 0.8rem; padding: 20px; border-top: 1px solid #222; }
         .live-dot { height: 8px; width: 8px; background-color: #00ff00; border-radius: 50%; display: inline-block; margin-right: 8px; animation: pulse 1.5s infinite; }
+        
         @keyframes pulse {
             0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); }
             70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(0, 255, 0, 0); }
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
         }
-        @media (max-width: 600px) { .card-row { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
     <div class="container">
         <h2 style="text-align:center; letter-spacing:1px; margin-bottom:20px; font-weight: 400;">BULLION LIVE FEED</h2>
+        
         <div class="card-row" id="top-cards">
             <div class="card">...</div><div class="card">...</div><div class="card">...</div>
         </div>
+
         <table>
             <tbody id="table-body">
                 <tr><td style="text-align:center; padding:20px; color:#333;">Syncing data...</td></tr>
             </tbody>
         </table>
+
         <div class="footer">
             <span class="live-dot"></span> <span style="color: #00ff00; font-weight: bold; margin-right: 10px;">LIVE</span>
             <span id="sync-status">Last Sync: --:--:--</span>
@@ -58,7 +73,7 @@
         function handleData(data) {
             document.getElementById('sync-status').innerText = "Last Sync: " + new Date().toLocaleTimeString();
             
-            // 1. Update Tiles
+            // 1. Update Cards
             let cardHtml = "";
             for (let i = 0; i < 3; i++) {
                 if (data[i]) {
@@ -67,12 +82,22 @@
             }
             document.getElementById('top-cards').innerHTML = cardHtml;
 
-            // 2. Update Table (No conversion, direct text)
+            // 2. Update Table
             let tableHtml = "";
             data.forEach((row, index) => {
-                // Skips first 3 and ignores "Updated Time" row
                 if (index > 2 && row[0] && !row[0].toLowerCase().includes("updated time")) {
-                    tableHtml += `<tr><td class="row-label">${row[0]}</td><td class="row-value">${row[1]}</td></tr>`;
+                    let label = row[0].toString();
+                    let value = row[1] ? row[1].toString() : "";
+                    
+                    // Check if it's a "GOLD 995" row to apply golden style
+                    let highlightClass = label.toUpperCase().includes("GOLD 995") ? ' class="highlight-gold"' : '';
+
+                    tableHtml += `
+                        <tr${highlightClass}>
+                            <td class="row-label">${label}</td>
+                            <td class="row-value">${value}</td>
+                        </tr>
+                    `;
                 }
             });
             document.getElementById('table-body').innerHTML = tableHtml;
