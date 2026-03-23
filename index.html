@@ -8,7 +8,7 @@
         body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', sans-serif; padding: 20px; margin: 0; }
         .container { max-width: 900px; margin: auto; }
         
-        /* Header Cards */
+        /* 3-Card Row for Top 3 Items */
         .card-row { 
             display: grid; 
             grid-template-columns: repeat(3, 1fr); 
@@ -26,14 +26,14 @@
         .card-label { color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; }
         .card-value { color: #fff; font-size: 1.6rem; font-weight: bold; }
 
-        /* Full Data Table */
+        /* Full Data Table for everything else */
         table { width: 100%; border-collapse: collapse; background: #161616; border-radius: 8px; overflow: hidden; }
         th, td { border-bottom: 1px solid #222; padding: 12px 15px; text-align: left; }
         th { background-color: #222; color: #888; text-transform: uppercase; font-size: 0.7rem; }
         .row-label { color: #aaa; font-size: 0.85rem; }
         .row-value { color: #fff; font-weight: 600; text-align: right; }
 
-        /* Footer Time */
+        /* Footer Time Section */
         .footer { 
             margin-top: 30px; 
             padding-top: 15px; 
@@ -42,8 +42,9 @@
             color: #555; 
             font-size: 0.85rem; 
         }
-        .highlight-time { color: #ffd700; font-weight: bold; }
+        .highlight-time { color: #ffd700; font-weight: bold; margin-left: 5px; }
 
+        /* Responsive Mobile View */
         @media (max-width: 600px) { .card-row { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -53,9 +54,9 @@
         <h2 style="text-align:center; letter-spacing:2px; margin-bottom:25px;">BULLION LIVE FEED</h2>
         
         <div class="card-row" id="top-cards">
-            <div class="card">Loading...</div>
-            <div class="card">Loading...</div>
-            <div class="card">Loading...</div>
+            <div class="card">Connecting...</div>
+            <div class="card">Connecting...</div>
+            <div class="card">Connecting...</div>
         </div>
 
         <table>
@@ -66,11 +67,12 @@
                 </tr>
             </thead>
             <tbody id="table-body">
-                </tbody>
+                <tr><td colspan="2" style="text-align:center; padding:20px;">Fetching all data...</td></tr>
+            </tbody>
         </table>
 
-        <div class="footer" id="market-status">
-            Market Update: <span class="highlight-time" id="last-update-display">Waiting for sync...</span>
+        <div class="footer">
+            Market Status: <span class="highlight-time" id="last-update-display">Syncing...</span>
         </div>
     </div>
 
@@ -78,17 +80,18 @@
         const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyE3a8fCvHt8AwUEBkgqpSxzDgS3ZhTUgSIqGkgZ22ouKCbmdu0cp8sQ9tcY4yI7IzqyA/exec";
 
         function handleData(data) {
-            // Helper to clean up Google's date objects
+            // Helper to clean up Google's date formatting
             function formatVal(val) {
-                if (!val) return "---";
+                if (!val) return "";
                 let s = val.toString();
-                if (s.includes("T") && s.includes("-") && s.length > 15) {
-                    return s.split("T")[0]; // Just the date part
+                // If it looks like a long computer date, shorten it
+                if (s.includes("T") && s.includes("-")) {
+                    return s.split("T")[0];
                 }
                 return s;
             }
 
-            // 1. Fill the 3 Cards (Rows 0, 1, 2)
+            // 1. TOP 3 CARDS (GOLD SPOT, SILVER SPOT, USDINR)
             let cardHtml = "";
             for (let i = 0; i < 3; i++) {
                 if (data[i]) {
@@ -102,22 +105,28 @@
             }
             document.getElementById('top-cards').innerHTML = cardHtml;
 
-            // 2. Fill the Table (Remaining rows)
+            // 2. TABLE & FOOTER LOGIC
             let tableHtml = "";
             let updateDate = "";
             let updateTime = "";
 
             data.forEach((row, index) => {
-                // Skip the first 3 (already in cards)
+                // Skip the top 3 (already in cards)
                 if (index > 2 && row[0]) {
-                    // Catch the update time rows specifically for the footer
-                    if (row[0].includes("Date")) updateDate = formatVal(row[1]);
-                    else if (row[0].includes("Time")) updateTime = row[1];
-                    else {
+                    let label = row[0].toString();
+                    let value = formatVal(row[1]);
+
+                    // Capture Date/Time for the footer specifically
+                    if (label.toLowerCase().includes("date")) {
+                        updateDate = value;
+                    } else if (label.toLowerCase().includes("time")) {
+                        updateTime = value;
+                    } else {
+                        // All other rows go in the table
                         tableHtml += `
                             <tr>
-                                <td class="row-label">${row[0]}</td>
-                                <td class="row-value">${row[1]}</td>
+                                <td class="row-label">${label}</td>
+                                <td class="row-value">${value}</td>
                             </tr>
                         `;
                     }
@@ -126,8 +135,9 @@
 
             document.getElementById('table-body').innerHTML = tableHtml;
             
-            // 3. Fix the Footer Display
-            document.getElementById('last-update-display').innerText = updateDate + " | " + updateTime;
+            // 3. UPDATE FOOTER
+            const finalStamp = (updateDate || "") + " " + (updateTime || "");
+            document.getElementById('last-update-display').innerText = finalStamp.trim() || "Live Now";
         }
 
         function requestUpdate() {
@@ -137,6 +147,7 @@
             script.onload = () => script.remove();
         }
 
+        // Check for updates every 30 seconds
         setInterval(requestUpdate, 30000);
         requestUpdate();
     </script>
