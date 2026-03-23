@@ -3,38 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bullion Live v2.1</title>
+    <title>Bullion Live v2.3</title>
     <style>
         body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', sans-serif; padding: 20px; margin: 0; }
         .container { max-width: 900px; margin: auto; }
         
         /* Top 3 Cards */
-        .card-row { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 15px; 
-            margin-bottom: 30px; 
-        }
-        .card { 
-            background: #1a1a1a; 
-            border: 1px solid #333; 
-            padding: 20px; 
-            border-radius: 10px; 
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
+        .card-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
+        .card { background: #1a1a1a; border: 1px solid #333; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         .card-label { color: #888; font-size: 0.7rem; text-transform: uppercase; margin-bottom: 5px; display: block; }
         .card-value { color: #fff; font-size: 1.6rem; font-weight: bold; }
 
-        /* Full Data Table */
+        /* Clean Table */
         table { width: 100%; border-collapse: collapse; background: #161616; border-radius: 8px; overflow: hidden; }
         td { border-bottom: 1px solid #222; padding: 12px 15px; }
         .row-label { color: #aaa; font-size: 0.85rem; font-weight: bold; }
         .row-value { color: #fff; font-weight: 600; text-align: right; }
 
-        /* Footer */
-        .footer { margin-top: 30px; border-top: 1px solid #222; padding-top: 15px; text-align: center; color: #555; font-size: 0.8rem; }
-        
+        .footer { margin-top: 30px; text-align: center; color: #444; font-size: 0.8rem; }
         @media (max-width: 600px) { .card-row { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -44,19 +30,19 @@
         <h2 style="text-align:center; letter-spacing:2px; margin-bottom:25px;">BULLION LIVE FEED</h2>
         
         <div class="card-row" id="top-cards">
-            <div class="card">Syncing...</div>
-            <div class="card">Syncing...</div>
-            <div class="card">Syncing...</div>
+            <div class="card">Linking Cards...</div>
+            <div class="card">Linking Cards...</div>
+            <div class="card">Linking Cards...</div>
         </div>
 
         <table>
             <tbody id="table-body">
-                <tr><td style="text-align:center; padding:20px;">Loading complete data list...</td></tr>
+                <tr><td style="text-align:center; padding:20px;">Fetching Table Data...</td></tr>
             </tbody>
         </table>
 
         <div class="footer">
-            System Status: <span style="color:#00ff00;">● Online</span> | Auto-refreshing every 30s
+            Direct Link to Sheet 1 | Refresh Rate: 30s
         </div>
     </div>
 
@@ -64,30 +50,31 @@
         const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyE3a8fCvHt8AwUEBkgqpSxzDgS3ZhTUgSIqGkgZ22ouKCbmdu0cp8sQ9tcY4yI7IzqyA/exec";
 
         function handleData(data) {
-            // 1. Update the Top 3 Cards
+            // 1. Render Top 3 Cards
             let cardHtml = "";
             for (let i = 0; i < 3; i++) {
                 if (data[i]) {
                     cardHtml += `
                         <div class="card">
-                            <span class="card-label">${data[i][0]}</span>
-                            <span class="card-value">${data[i][1]}</span>
+                            <span class="card-label">${data[i][0].toString()}</span>
+                            <span class="card-value">${data[i][1].toString()}</span>
                         </div>
                     `;
                 }
             }
             document.getElementById('top-cards').innerHTML = cardHtml;
 
-            // 2. Update the Table (Includes ALL rows, even the ones in cards)
+            // 2. Render Table (Filtering out the first 3 rows)
             let tableHtml = "";
-            data.forEach((row) => {
-                if (row[0]) {
+            data.forEach((row, index) => {
+                // index > 2 ensures we skip row 1, 2, and 3
+                if (index > 2 && row[0]) {
                     let label = row[0].toString();
-                    let value = row[1].toString();
+                    let value = row[1] ? row[1].toString() : "";
 
-                    // Simple cleanup for date formatting
-                    if (value.includes("T") && value.includes("-")) {
-                        value = value.split("T")[0];
+                    // Clean formatting for Date/Time strings from Google
+                    if (value.includes("T")) {
+                        value = value.replace("T", " ").split(".")[0].replace("Z", "");
                     }
 
                     tableHtml += `
