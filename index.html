@@ -3,75 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Bullion Feed</title>
+    <title>Raw Data Feed - Bullion</title>
     <style>
-        body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', sans-serif; text-align: center; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: auto; }
-        h1 { font-size: 2.2rem; letter-spacing: 2px; margin-bottom: 30px; border-bottom: 2px solid #333; display: inline-block; padding-bottom: 10px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
-        .card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .label { color: #888; font-size: 0.8rem; text-transform: uppercase; display: block; margin-bottom: 10px; letter-spacing: 1px; }
-        .price { font-size: 1.8rem; font-weight: bold; color: #fff; }
-        #timestamp { margin-top: 40px; color: #444; font-style: italic; font-size: 0.85rem; border-top: 1px solid #222; padding-top: 20px; }
+        body { background-color: #0d0d0d; color: #ffd700; font-family: monospace; padding: 20px; line-height: 1.6; }
+        .container { max-width: 600px; margin: auto; text-align: left; border: 1px solid #333; padding: 20px; border-radius: 8px; }
+        h1 { text-align: center; border-bottom: 1px solid #ffd700; padding-bottom: 10px; }
+        .data-row { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding: 8px 0; }
+        .label { color: #888; font-weight: bold; }
+        .value { color: #fff; }
+        #status { text-align: center; color: #555; margin-top: 20px; font-size: 0.8rem; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>BULLION LIVE FEED</h1>
-        <div class="grid" id="dashboard">
-            <div style="padding: 50px;">Connecting to Live Rates...</div>
-        </div>
-        <p id="timestamp">Syncing with Google Sheets...</p>
+        <h1>RAW SHEET DATA</h1>
+        <div id="data-list">Initializing connection...</div>
+        <div id="status">Syncing with Google Web App...</div>
     </div>
 
     <script>
         const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyE3a8fCvHt8AwUEBkgqpSxzDgS3ZhTUgSIqGkgZ22ouKCbmdu0cp8sQ9tcY4yI7IzqyA/exec";
 
+        // This function handles the "All Data" dump
         function handleData(data) {
-            // Updated search logic to handle your specific sheet symbols like ($)
-            function getVal(name) {
-                for (let row of data) {
-                    if (row[0] && row[0].toString().toUpperCase().includes(name.toUpperCase())) {
-                        return row[1];
-                    }
-                }
-                return "---";
-            }
-
-            const items = [
-                { label: "Gold Spot ($)", val: getVal("GOLD SPOT") },
-                { label: "Silver Spot ($)", val: getVal("SILVER SPOT") },
-                { label: "USD-INR", val: getVal("USDINR") },
-                { label: "Gold Costing (L)", val: getVal("GOLD COSTING (L)") }
-            ];
-
             let html = "";
-            items.forEach(item => {
-                html += `
-                    <div class="card">
-                        <span class="label">${item.label}</span>
-                        <span class="price">${item.val}</span>
-                    </div>
-                `;
+            
+            // Loop through every single row in the sheet
+            data.forEach(row => {
+                // Only show rows that have data in the first or second column
+                if (row[0] || row[1]) {
+                    html += `
+                        <div class="data-row">
+                            <span class="label">${row[0] || ""}</span>
+                            <span class="value">${row[1] || ""} ${row[2] || ""}</span>
+                        </div>
+                    `;
+                }
             });
 
-            document.getElementById('dashboard').innerHTML = html;
-            
-            // Getting time from your "Last Updated Time" row
-            const date = getVal("Last Updated Date");
-            const time = getVal("Last Updated Time");
-            document.getElementById('timestamp').innerText = "Market Update: " + date + " " + time;
+            document.getElementById('data-list').innerHTML = html;
+            document.getElementById('status').innerText = "Last Updated: " + new Date().toLocaleTimeString();
         }
 
         function requestUpdate() {
             const script = document.createElement('script');
+            // Using your updated URL with the JSONP callback
             script.src = GOOGLE_URL + "?callback=handleData&t=" + new Date().getTime();
             document.body.appendChild(script);
             script.onload = () => script.remove();
         }
 
-        setInterval(requestUpdate, 30000); // Faster refresh (30 seconds)
+        // Refresh every 30 seconds
+        setInterval(requestUpdate, 30000);
         requestUpdate();
     </script>
 </body>
