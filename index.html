@@ -5,21 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Bullion Feed</title>
     <style>
-        /* Professional Dark Theme */
+        /* Modern Dark Theme */
         body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', sans-serif; text-align: center; margin: 0; padding: 20px; }
         .container { max-width: 900px; margin: auto; }
         h1 { font-size: 2.2rem; letter-spacing: 2px; margin-bottom: 30px; border-bottom: 2px solid #333; display: inline-block; padding-bottom: 10px; }
         
-        /* Grid Layout */
+        /* Grid Layout for Prices */
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
         .card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: 0.3s; }
         .card:hover { border-color: #ffd700; transform: translateY(-5px); }
         
-        /* Text Styles */
+        /* Typography */
         .label { color: #888; font-size: 0.9rem; text-transform: uppercase; display: block; margin-bottom: 10px; }
         .price { font-size: 2rem; font-weight: bold; color: #fff; }
-        #timestamp { margin-top: 40px; color: #444; font-style: italic; font-size: 0.8rem; }
-        .error-msg { color: #ff4d4d; font-weight: bold; margin-top: 20px; }
+        #timestamp { margin-top: 40px; color: #444; font-style: italic; font-size: 0.85rem; }
+        .status-msg { color: #ffd700; font-size: 1.1rem; padding: 50px; }
     </style>
 </head>
 <body>
@@ -28,77 +28,68 @@
         <h1>BULLION LIVE FEED</h1>
         
         <div class="grid" id="dashboard">
-            <div style="color:#ffd700; padding: 50px;">Initializing Secure Connection...</div>
+            <div class="status-msg">Connecting to Live Sheet...</div>
         </div>
 
-        <p id="timestamp">Waiting for sync...</p>
+        <p id="timestamp">Syncing with Sheet 1...</p>
     </div>
 
     <script>
-        // YOUR NEW WEB APP URL
-        const APP_URL = "https://script.google.com/macros/s/AKfycbx-VyFFURF4PVDOzn4EKHKw1i-38B-TL5SWz823Q5guScSNUrzWWW4XloantmAkxrcVZQ/exec";
+        // Your Verified Web App URL
+        const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyE3a8fCvHt8AwUEBkgqpSxzDgS3ZhTUgSIqGkgZ22ouKCbmdu0cp8sQ9tcY4yI7IzqyA/exec";
 
-        async function fetchRates() {
-            try {
-                // We use 'follow' for redirects and a timestamp to prevent browser caching
-                const response = await fetch(APP_URL + "?t=" + new Date().getTime(), { 
-                    method: "GET",
-                    redirect: "follow" 
-                });
-
-                if (!response.ok) throw new Error('Network response was not ok');
-                
-                const data = await response.json();
-
-                // This function searches Row 1 (labels) to find the right Price in Row 2
-                function getVal(name) {
-                    for (let row of data) {
-                        if (row[0] && row[0].toString().toLowerCase().includes(name.toLowerCase())) {
-                            return row[1]; // Get value from the cell next to it (Column B)
-                        }
+        // This function is triggered automatically when Google sends the data
+        function handleData(data) {
+            function getVal(name) {
+                for (let row of data) {
+                    // Looks for the name in Column A, returns value from Column B
+                    if (row[0] && row[0].toString().toLowerCase().includes(name.toLowerCase())) {
+                        return row[1]; 
                     }
-                    return "---";
                 }
-
-                // Data mapping based on your sheet labels
-                const items = [
-                    { label: "Gold Spot", val: getVal("Gold Spot") },
-                    { label: "Silver Spot", val: getVal("Silver Spot") },
-                    { label: "USD-INR", val: getVal("USD-INR") },
-                    { label: "Gold 995 Sell", val: getVal("GOLD 995 SELL") }
-                ];
-
-                let html = "";
-                items.forEach(item => {
-                    html += `
-                        <div class="card">
-                            <span class="label">${item.label}</span>
-                            <span class="price">${item.val}</span>
-                        </div>
-                    `;
-                });
-
-                document.getElementById('dashboard').innerHTML = html;
-                
-                // Show the sync time from your sheet or current time
-                const syncTime = getVal("Last Updated") !== "---" ? getVal("Last Updated") : new Date().toLocaleTimeString();
-                document.getElementById('timestamp').innerText = "Last Updated: " + syncTime;
-
-            } catch (error) {
-                console.error("Fetch error:", error);
-                document.getElementById('dashboard').innerHTML = `
-                    <div class="error-msg">
-                        Connection Error.<br>
-                        <span style="font-size: 0.8rem; color: #666;">
-                            Please check if the Google Script is deployed to 'Anyone'.
-                        </span>
-                    </div>`;
+                return "---";
             }
+
+            // Define the cards to show
+            const items = [
+                { label: "Gold Spot", val: getVal("Gold Spot") },
+                { label: "Silver Spot", val: getVal("Silver Spot") },
+                { label: "USD-INR", val: getVal("USD-INR") },
+                { label: "Gold 995 Sell", val: getVal("GOLD 995 SELL") }
+            ];
+
+            let html = "";
+            items.forEach(item => {
+                html += `
+                    <div class="card">
+                        <span class="label">${item.label}</span>
+                        <span class="price">${item.val}</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('dashboard').innerHTML = html;
+            
+            // Displays the 'Last Updated' timestamp from your sheet
+            const timeVal = getVal("Last Updated");
+            document.getElementById('timestamp').innerText = "Last Sheet Sync: " + (timeVal !== "---" ? timeVal : new Date().toLocaleTimeString());
         }
 
-        // Refresh automatically every 60 seconds
-        setInterval(fetchRates, 60000);
-        fetchRates(); // Initial load
+        function requestUpdate() {
+            // JSONP Technique: Creates a script tag to bypass CORS security blocks
+            const script = document.createElement('script');
+            script.src = GOOGLE_URL + "?callback=handleData&t=" + new Date().getTime();
+            document.body.appendChild(script);
+            
+            // Clean up the tag after data is received
+            script.onload = () => script.remove();
+        }
+
+        // Auto-refresh the website every 60 seconds
+        setInterval(requestUpdate, 60000);
+        
+        // Initial request
+        requestUpdate();
     </script>
 </body>
 </html>
