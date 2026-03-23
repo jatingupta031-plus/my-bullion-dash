@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bullion Live - Dashboard</title>
+    <title>Bullion Live v2.1</title>
     <style>
         body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', sans-serif; padding: 20px; margin: 0; }
         .container { max-width: 900px; margin: auto; }
         
-        /* 3-Card Row for Top 3 Items */
+        /* Top 3 Cards */
         .card-row { 
             display: grid; 
             grid-template-columns: repeat(3, 1fr); 
@@ -23,28 +23,18 @@
             text-align: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
-        .card-label { color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; }
+        .card-label { color: #888; font-size: 0.7rem; text-transform: uppercase; margin-bottom: 5px; display: block; }
         .card-value { color: #fff; font-size: 1.6rem; font-weight: bold; }
 
-        /* Full Data Table for everything else */
+        /* Full Data Table */
         table { width: 100%; border-collapse: collapse; background: #161616; border-radius: 8px; overflow: hidden; }
-        th, td { border-bottom: 1px solid #222; padding: 12px 15px; text-align: left; }
-        th { background-color: #222; color: #888; text-transform: uppercase; font-size: 0.7rem; }
-        .row-label { color: #aaa; font-size: 0.85rem; }
+        td { border-bottom: 1px solid #222; padding: 12px 15px; }
+        .row-label { color: #aaa; font-size: 0.85rem; font-weight: bold; }
         .row-value { color: #fff; font-weight: 600; text-align: right; }
 
-        /* Footer Time Section */
-        .footer { 
-            margin-top: 30px; 
-            padding-top: 15px; 
-            border-top: 1px solid #222; 
-            text-align: center; 
-            color: #555; 
-            font-size: 0.85rem; 
-        }
-        .highlight-time { color: #ffd700; font-weight: bold; margin-left: 5px; }
-
-        /* Responsive Mobile View */
+        /* Footer */
+        .footer { margin-top: 30px; border-top: 1px solid #222; padding-top: 15px; text-align: center; color: #555; font-size: 0.8rem; }
+        
         @media (max-width: 600px) { .card-row { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -54,25 +44,19 @@
         <h2 style="text-align:center; letter-spacing:2px; margin-bottom:25px;">BULLION LIVE FEED</h2>
         
         <div class="card-row" id="top-cards">
-            <div class="card">Connecting...</div>
-            <div class="card">Connecting...</div>
-            <div class="card">Connecting...</div>
+            <div class="card">Syncing...</div>
+            <div class="card">Syncing...</div>
+            <div class="card">Syncing...</div>
         </div>
 
         <table>
-            <thead>
-                <tr>
-                    <th>Description</th>
-                    <th style="text-align: right;">Value</th>
-                </tr>
-            </thead>
             <tbody id="table-body">
-                <tr><td colspan="2" style="text-align:center; padding:20px;">Fetching all data...</td></tr>
+                <tr><td style="text-align:center; padding:20px;">Loading complete data list...</td></tr>
             </tbody>
         </table>
 
         <div class="footer">
-            Market Status: <span class="highlight-time" id="last-update-display">Syncing...</span>
+            System Status: <span style="color:#00ff00;">● Online</span> | Auto-refreshing every 30s
         </div>
     </div>
 
@@ -80,18 +64,7 @@
         const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyE3a8fCvHt8AwUEBkgqpSxzDgS3ZhTUgSIqGkgZ22ouKCbmdu0cp8sQ9tcY4yI7IzqyA/exec";
 
         function handleData(data) {
-            // Helper to clean up Google's date formatting
-            function formatVal(val) {
-                if (!val) return "";
-                let s = val.toString();
-                // If it looks like a long computer date, shorten it
-                if (s.includes("T") && s.includes("-")) {
-                    return s.split("T")[0];
-                }
-                return s;
-            }
-
-            // 1. TOP 3 CARDS (GOLD SPOT, SILVER SPOT, USDINR)
+            // 1. Update the Top 3 Cards
             let cardHtml = "";
             for (let i = 0; i < 3; i++) {
                 if (data[i]) {
@@ -105,39 +78,27 @@
             }
             document.getElementById('top-cards').innerHTML = cardHtml;
 
-            // 2. TABLE & FOOTER LOGIC
+            // 2. Update the Table (Includes ALL rows, even the ones in cards)
             let tableHtml = "";
-            let updateDate = "";
-            let updateTime = "";
-
-            data.forEach((row, index) => {
-                // Skip the top 3 (already in cards)
-                if (index > 2 && row[0]) {
+            data.forEach((row) => {
+                if (row[0]) {
                     let label = row[0].toString();
-                    let value = formatVal(row[1]);
+                    let value = row[1].toString();
 
-                    // Capture Date/Time for the footer specifically
-                    if (label.toLowerCase().includes("date")) {
-                        updateDate = value;
-                    } else if (label.toLowerCase().includes("time")) {
-                        updateTime = value;
-                    } else {
-                        // All other rows go in the table
-                        tableHtml += `
-                            <tr>
-                                <td class="row-label">${label}</td>
-                                <td class="row-value">${value}</td>
-                            </tr>
-                        `;
+                    // Simple cleanup for date formatting
+                    if (value.includes("T") && value.includes("-")) {
+                        value = value.split("T")[0];
                     }
+
+                    tableHtml += `
+                        <tr>
+                            <td class="row-label">${label}</td>
+                            <td class="row-value">${value}</td>
+                        </tr>
+                    `;
                 }
             });
-
             document.getElementById('table-body').innerHTML = tableHtml;
-            
-            // 3. UPDATE FOOTER
-            const finalStamp = (updateDate || "") + " " + (updateTime || "");
-            document.getElementById('last-update-display').innerText = finalStamp.trim() || "Live Now";
         }
 
         function requestUpdate() {
@@ -147,7 +108,6 @@
             script.onload = () => script.remove();
         }
 
-        // Check for updates every 30 seconds
         setInterval(requestUpdate, 30000);
         requestUpdate();
     </script>
