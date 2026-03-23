@@ -3,66 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Bullion Rates</title>
+    <title>Live Bullion Dashboard</title>
     <style>
-        body { background-color: #0f0f0f; color: #ffd700; font-family: 'Segoe UI', sans-serif; text-align: center; }
-        .container { margin-top: 50px; }
-        .price-box { 
-            display: inline-block; border: 2px solid #ffd700; padding: 30px; 
-            margin: 15px; border-radius: 15px; min-width: 200px;
-            background: #1a1a1a; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
-        }
-        h1 { font-size: 2.5em; margin-bottom: 10px; }
-        .price { font-size: 3em; font-weight: bold; display: block; }
-        .label { color: #ffffff; text-transform: uppercase; letter-spacing: 2px; }
-        #status { color: #888; margin-top: 20px; font-size: 0.9em; }
+        body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 20px; }
+        .container { max-width: 800px; margin: auto; }
+        h1 { border-bottom: 2px solid #ffd700; display: inline-block; padding-bottom: 10px; margin-bottom: 30px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: 0.3s; }
+        .card:hover { border-color: #ffd700; transform: translateY(-5px); }
+        .label { color: #aaa; font-size: 0.9em; text-transform: uppercase; display: block; margin-bottom: 10px; }
+        .price { font-size: 2.2em; font-weight: bold; color: #fff; }
+        #timestamp { margin-top: 40px; color: #666; font-style: italic; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>BULLION LIVE</h1>
-        <div id="prices-container">
-            <p>Connecting to Live Feed...</p>
+        <h1>BULLION LIVE FEED</h1>
+        
+        <div class="grid" id="dashboard">
+            <p>Fetching latest market rates...</p>
         </div>
-        <p id="status">Syncing with Google Sheets...</p>
+
+        <p id="timestamp">Loading sync time...</p>
     </div>
 
     <script>
-        // PASTE YOUR WEB APP URL HERE
         const SHEET_URL = "https://script.google.com/macros/s/AKfycbw7H341oKecHtNlp6VMjJDDFzpM8ljJ7JGFRmCb9TZfw6bHh8AHpFyu6YTfgvQddR8q6Q/exec";
 
-        async function updateDashboard() {
+        async function getData() {
             try {
                 const response = await fetch(SHEET_URL);
                 const data = await response.json();
-                
-                // Assuming Row 1 has headers, Row 2 is Gold, Row 3 is Silver
-                // data[Row][Column] -> Row 1 is index 0, Col A is index 0
-                
-                let goldPrice = data[1][1]; // Cell B2
-                let silverPrice = data[2][1]; // Cell B3
 
-                document.getElementById('prices-container').innerHTML = `
-                    <div class="price-box">
-                        <span class="label">Gold 995</span>
-                        <span class="price">₹${goldPrice}</span>
-                    </div>
-                    <div class="price-box">
-                        <span class="label">Silver Spot</span>
-                        <span class="price">₹${silverPrice}</span>
-                    </div>
-                `;
-                
-                document.getElementById('status').innerText = "Last Updated: " + new Date().toLocaleTimeString();
-            } catch (err) {
-                document.getElementById('status').innerText = "Error fetching data. Retrying...";
+                // Mapping your specific rows from the "Bullion Dashboard" sheet:
+                // data[row][column] (Starts at 0)
+                const items = [
+                    { label: data[0][0], value: data[0][1] }, // Gold Spot
+                    { label: data[1][0], value: data[1][1] }, // Silver Spot
+                    { label: data[2][0], value: data[2][1] }, // USD-INR
+                    { label: data[4][0], value: data[4][1] }  // GOLD 995 SELL
+                ];
+
+                let html = "";
+                items.forEach(item => {
+                    html += `
+                        <div class="card">
+                            <span class="label">${item.label}</span>
+                            <span class="price">${item.value}</span>
+                        </div>
+                    `;
+                });
+
+                document.getElementById('dashboard').innerHTML = html;
+                // Grabbing the timestamp from your last row (Cell B6)
+                document.getElementById('timestamp').innerText = "Sheet Sync: " + data[5][1];
+
+            } catch (error) {
+                document.getElementById('dashboard').innerHTML = "<p style='color:red;'>Connection Error. Retrying...</p>";
             }
         }
 
-        // Refresh every 60 seconds (60000 ms)
-        setInterval(updateDashboard, 60000);
-        updateDashboard(); // Initial load
+        // Auto-refresh the website every 60 seconds
+        setInterval(getData, 60000);
+        getData();
     </script>
 </body>
 </html>
