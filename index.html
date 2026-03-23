@@ -7,14 +7,24 @@
     <style>
         body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', sans-serif; padding: 20px; margin: 0; }
         .container { max-width: 800px; margin: auto; }
-        .card-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 25px; max-width: 650px; margin: auto; }
-        .card { background: #161616; border: 1px solid #333; padding: 15px 10px; border-radius: 8px; text-align: center; }
+        
+        /* Narrower Tiles */
+        .card-row { 
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; 
+            margin-bottom: 25px; max-width: 600px; margin: auto; 
+        }
+        .card { 
+            background: #161616; border: 1px solid #333; padding: 15px 10px; 
+            border-radius: 8px; text-align: center;
+        }
         .card-label { color: #888; font-size: 0.65rem; text-transform: uppercase; margin-bottom: 5px; display: block; }
         .card-value { color: #fff; font-size: 1.4rem; font-weight: bold; }
+
         table { width: 100%; border-collapse: collapse; background: #121212; border-radius: 8px; overflow: hidden; border: 1px solid #222; }
         td { border-bottom: 1px solid #1a1a1a; padding: 12px 15px; }
         .row-label { color: #999; font-size: 0.85rem; }
         .row-value { color: #fff; font-weight: 600; text-align: right; }
+
         .footer { margin-top: 30px; text-align: center; color: #555; font-size: 0.8rem; padding: 20px; border-top: 1px solid #222; }
         .live-dot { height: 8px; width: 8px; background-color: #00ff00; border-radius: 50%; display: inline-block; margin-right: 8px; animation: pulse 1.5s infinite; }
         @keyframes pulse {
@@ -27,7 +37,7 @@
 </head>
 <body>
     <div class="container">
-        <h2 style="text-align:center; letter-spacing:1px; margin-bottom:20px;">BULLION LIVE FEED</h2>
+        <h2 style="text-align:center; letter-spacing:1px; margin-bottom:20px; font-weight: 400;">BULLION LIVE FEED</h2>
         <div class="card-row" id="top-cards">
             <div class="card">...</div><div class="card">...</div><div class="card">...</div>
         </div>
@@ -48,7 +58,7 @@
         function handleData(data) {
             document.getElementById('sync-status').innerText = "Last Sync: " + new Date().toLocaleTimeString();
             
-            // 1. Cards
+            // Render Cards
             let cardHtml = "";
             for (let i = 0; i < 3; i++) {
                 if (data[i]) {
@@ -57,10 +67,9 @@
             }
             document.getElementById('top-cards').innerHTML = cardHtml;
 
-            // 2. Table
+            // Render Table
             let tableHtml = "";
             data.forEach((row, index) => {
-                // Filter: skip first 3 and ignore "Updated Time" row
                 if (index > 2 && row[0] && !row[0].toLowerCase().includes("updated time")) {
                     tableHtml += `<tr><td class="row-label">${row[0]}</td><td class="row-value">${row[1]}</td></tr>`;
                 }
@@ -74,7 +83,6 @@
             document.body.appendChild(script);
             script.onload = () => script.remove();
         }
-
         setInterval(requestUpdate, 30000);
         requestUpdate();
     </script>
