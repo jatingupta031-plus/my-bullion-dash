@@ -3,23 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bullion Live v2.8</title>
+    <title>Bullion Dashboard v2.9</title>
     <style>
         body { background-color: #0d0d0d; color: #ffd700; font-family: 'Segoe UI', sans-serif; padding: 20px; margin: 0; }
-        .container { max-width: 900px; margin: auto; }
-        .card-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
-        .card { background: #1a1a1a; border: 1px solid #333; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .card-label { color: #888; font-size: 0.7rem; text-transform: uppercase; margin-bottom: 5px; display: block; }
-        .card-value { color: #fff; font-size: 1.6rem; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; background: #161616; border-radius: 8px; overflow: hidden; }
-        td { border-bottom: 1px solid #222; padding: 12px 15px; }
-        .row-label { color: #aaa; font-size: 0.85rem; font-weight: bold; }
-        .row-value { color: #fff; font-weight: 600; text-align: right; }
-        .footer { margin-top: 30px; text-align: center; color: #666; font-size: 0.85rem; padding: 20px; border-top: 1px solid #222; }
-        .live-dot { height: 10px; width: 10px; background-color: #00ff00; border-radius: 50%; display: inline-block; margin-right: 8px; animation: pulse 1.5s infinite; }
+        .container { max-width: 800px; margin: auto; }
+        
+        /* Narrower Cards */
+        .card-row { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 12px; 
+            margin-bottom: 25px; 
+            max-width: 700px; 
+            margin-left: auto; 
+            margin-right: auto;
+        }
+        .card { 
+            background: #161616; 
+            border: 1px solid #222; 
+            padding: 15px 10px; 
+            border-radius: 8px; 
+            text-align: center;
+            transition: 0.3s;
+        }
+        .card:hover { border-color: #ffd700; }
+        .card-label { color: #888; font-size: 0.65rem; text-transform: uppercase; margin-bottom: 5px; display: block; }
+        .card-value { color: #fff; font-size: 1.4rem; font-weight: bold; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; background: #121212; border-radius: 8px; overflow: hidden; border: 1px solid #222; }
+        td { border-bottom: 1px solid #1a1a1a; padding: 12px 15px; }
+        .row-label { color: #999; font-size: 0.85rem; font-weight: 500; }
+        .row-value { color: #fff; font-weight: 600; text-align: right; font-family: monospace; font-size: 1rem; }
+
+        /* Footer */
+        .footer { margin-top: 30px; text-align: center; color: #555; font-size: 0.8rem; padding: 20px; border-top: 1px solid #222; }
+        .live-dot { height: 8px; width: 8px; background-color: #00ff00; border-radius: 50%; display: inline-block; margin-right: 8px; animation: pulse 1.5s infinite; }
         @keyframes pulse {
             0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(0, 255, 0, 0); }
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
         }
         @media (max-width: 600px) { .card-row { grid-template-columns: 1fr; } }
@@ -28,7 +50,7 @@
 <body>
 
     <div class="container">
-        <h2 style="text-align:center; letter-spacing:2px; margin-bottom:25px;">BULLION LIVE FEED</h2>
+        <h2 style="text-align:center; letter-spacing:1px; margin-bottom:20px; font-weight: 400;">BULLION LIVE FEED</h2>
         
         <div class="card-row" id="top-cards">
             <div class="card">...</div><div class="card">...</div><div class="card">...</div>
@@ -36,13 +58,13 @@
 
         <table>
             <tbody id="table-body">
-                <tr><td style="text-align:center; padding:20px; color:#444;">Updating rates...</td></tr>
+                <tr><td style="text-align:center; padding:20px; color:#333;">Syncing data...</td></tr>
             </tbody>
         </table>
 
         <div class="footer">
             <span class="live-dot"></span> 
-            <span style="color: #00ff00; font-weight: bold; margin-right: 15px;">LIVE</span>
+            <span style="color: #00ff00; font-weight: bold; margin-right: 10px;">LIVE</span>
             <span id="sync-status">Last Sync: --:--:--</span>
         </div>
     </div>
@@ -50,31 +72,31 @@
     <script>
         const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbyE3a8fCvHt8AwUEBkgqpSxzDgS3ZhTUgSIqGkgZ22ouKCbmdu0cp8sQ9tcY4yI7IzqyA/exec";
 
-        // This function treats the date purely as a text string to prevent "day skipping"
-        function forceDateFormat(str) {
-            if (!str) return "";
+        // BRUTE FORCE DATE FIX: Ignore all logic, just grab the pieces of the string
+        function absoluteDateFix(val) {
+            if (!val) return "";
+            let s = val.toString();
             
-            // If Google sends 2026-03-23T00:00:00.000Z, we only want "2026-03-23"
-            let dateOnly = str.toString().split("T")[0]; 
-            
-            // If the format is YYYY-MM-DD
-            if (dateOnly.includes("-")) {
-                const parts = dateOnly.split("-");
+            // If Google sends 2026-03-23...
+            if (s.includes("-") && s.length >= 10) {
+                let parts = s.split("T")[0].split("-");
                 if (parts.length === 3) {
-                    const year = parts[0];
-                    const monthIdx = parseInt(parts[1], 10) - 1;
-                    const day = parts[2];
+                    // Force the parts: Year (0), Month (1), Day (2)
                     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                    return `${day}-${months[monthIdx]}-${year}`;
+                    let day = parts[2];
+                    let monthName = months[parseInt(parts[1], 10) - 1];
+                    let year = parts[0];
+                    return `${day}-${monthName}-${year}`;
                 }
             }
-            return str; // Fallback if format is different
+            return s;
         }
 
         function handleData(data) {
             const now = new Date();
-            document.getElementById('sync-status').innerText = "Last Sync: " + now.toLocaleTimeString();
+            document.getElementById('sync-status').innerText = "Last Sync: " + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
 
+            // 1. Cards (Narrowed)
             let cardHtml = "";
             for (let i = 0; i < 3; i++) {
                 if (data[i]) {
@@ -83,6 +105,7 @@
             }
             document.getElementById('top-cards').innerHTML = cardHtml;
 
+            // 2. Table
             let tableHtml = "";
             data.forEach((row, index) => {
                 if (index > 2 && row[0]) {
@@ -91,9 +114,9 @@
 
                     if (label.toLowerCase().includes("updated time")) return;
 
-                    // Apply the strict text formatting for the Date row
+                    // Apply the absolute date fix
                     if (label.toLowerCase().includes("date")) {
-                        value = forceDateFormat(value);
+                        value = absoluteDateFix(value);
                     }
 
                     tableHtml += `<tr><td class="row-label">${label}</td><td class="row-value">${value}</td></tr>`;
