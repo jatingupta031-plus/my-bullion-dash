@@ -37,6 +37,33 @@
         .highlight-gold td { color: #ffd700 !important; font-weight: bold !important; }
         .highlight-gold .row-label { color: #ffd700 !important; }
 
+        /* --- Sliding Banner Styles --- */
+        .banner-container {
+            width: 100%;
+            overflow: hidden;
+            background: #1a1a1a;
+            border-top: 1px solid #ffd700;
+            border-bottom: 1px solid #ffd700;
+            margin-top: 20px;
+            padding: 10px 0;
+            white-space: nowrap;
+        }
+        .banner-text {
+            display: inline-block;
+            padding-left: 100%;
+            animation: marquee 15s linear infinite;
+            color: #ffd700;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        @keyframes marquee {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-100%, 0); }
+        }
+        /* ---------------------------- */
+
         .footer { margin-top: 30px; text-align: center; color: #555; font-size: 0.8rem; padding: 20px; border-top: 1px solid #222; }
         .live-dot { height: 8px; width: 8px; background-color: #00ff00; border-radius: 50%; display: inline-block; margin-right: 8px; animation: pulse 1.5s infinite; }
         
@@ -60,6 +87,12 @@
                 <tr><td style="text-align:center; padding:20px; color:#333;">Syncing data...</td></tr>
             </tbody>
         </table>
+
+        <div class="banner-container">
+            <div class="banner-text">
+                Rates are accurate between 2.00 pm to 6.00 pm &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp; Rates are accurate between 2.00 pm to 6.00 pm
+            </div>
+        </div>
 
         <div class="footer">
             <span class="live-dot"></span> <span style="color: #00ff00; font-weight: bold; margin-right: 10px;">LIVE</span>
